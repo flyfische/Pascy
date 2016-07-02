@@ -1,8 +1,10 @@
 #Token Types
-INTEGER = 'INTEGER'
-PLUS    = 'PLUS'
-EOF     = 'EOF'
+INTEGER  = 'INTEGER'
+PLUS     = 'PLUS'
+EOF      = 'EOF'
 SUBTRACT = 'SUBTRACT'
+MULT     = 'MULT'
+DIV      = 'DIV'
 
 class Token(object):
     def __init__(self, type, value):
@@ -24,46 +26,68 @@ class Interpreter(object):
         self.text = text
         self.pos = 0
         self.current_token = None
+        self.current_char = self.text[self.pos]
 
     def error(self):
         raise Exception('Error parsing input')
 
+    def integer(self):
+        digit = ""
+        while self.current_char is not None and self.current_char.isdigit():
+            digit += self.current_char
+            self.advance()
+        return int(digit)
+
     def get_next_token(self):
         text = self.text
 
-        if self.pos > len(text) - 1:
-            return Token(EOF, None)
-
-        current_char = text[self.pos]
+        while self.current_char is not None:
+    
+            if self.pos > len(text) - 1:
+                return Token(EOF, None)
         
-        while current_char == ' ':
-            self.pos += 1
-            current_char = text[self.pos]
+            if self.current_char.isspace():
+                self.skip_whitespace()
+                continue
 
-        if current_char.isdigit():
-            digit = ""
-            while current_char.isdigit():
-                digit += current_char
-                
-                if self.pos + 1 >= len(text):
-                    break
+            if self.current_char.isdigit():
+                digit = self.integer()
+                self.advance()
+                token = Token(INTEGER, int(digit))
+                return token
+        
+            if self.current_char == '+':
+                token = Token(PLUS, self.current_char)
+                self.advance()
+                return token
+            if self.current_char == '-':
+                token = Token(SUBTRACT, self.current_char)
+                self.advance()
+                return token
+            if self.current_char == '*':
+                token = Token(MULT, self.current_char)
+                self.advance()
+                return token
+            if self.current_char == '/':
+                token = Token(DIV, self.current_char)
+                self.advance()
+                return token
 
-                self.pos += 1
-                current_char = text[self.pos]
-                
-            token = Token(INTEGER, int(digit))
-            self.pos += 1
-            return token
-        if current_char == '+':
-            token = Token(PLUS, current_char)
-            self.pos += 1
-            return token
-        if current_char == '-':
-            token = Token(SUBTRACT, current_char)
-            self.pos += 1
-            return token
+            self.error()
+            
+        return Token(EOF, None)
 
-        self.error()
+    def advance(self):
+        self.pos += 1
+        if self.pos > len(self.text) - 1:
+            self.current_char = None
+        else:
+            self.current_char = self.text[self.pos]
+            
+    def skip_whitespace(self):
+        while self.current_char is not None and self.current_char.isspace():
+            self.advance()
+            
     def eat(self, token_type):
         if self.current_token.type == token_type:
             self.current_token = self.get_next_token()
@@ -84,6 +108,14 @@ class Interpreter(object):
             op = self.current_token
             self.eat(SUBTRACT)
 
+        if self.current_token.type == MULT:
+            op = self.current_token
+            self.eat(MULT)
+
+        if self.current_token.type == DIV:
+            op = self.current_token
+            self.eat(DIV)
+
         right = self.current_token
         self.eat(INTEGER)
 
@@ -91,6 +123,10 @@ class Interpreter(object):
             result = left.value + right.value
         if op.type == SUBTRACT:
             result = left.value - right.value
+        if op.type == MULT:
+            result = left.value * right.value
+        if op.type == DIV:
+            result = left.value / right.value
             
         return result
 def main():
