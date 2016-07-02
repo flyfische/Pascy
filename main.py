@@ -21,7 +21,7 @@ class Token(object):
     def __repr__(self):
         return self.__str__()
 
-class Interpreter(object):
+class Lexer(object):
     def __init__(self, text):
         self.text = text
         self.pos = 0
@@ -87,48 +87,46 @@ class Interpreter(object):
     def skip_whitespace(self):
         while self.current_char is not None and self.current_char.isspace():
             self.advance()
-            
+
+class Interpreter(object):
+    def __init__(self, lexer):
+        self.lexer = lexer
+        self.current_token = self.lexer.get_next_token()
+    
     def eat(self, token_type):
         if self.current_token.type == token_type:
-            self.current_token = self.get_next_token()
+            self.current_token = self.lexer.get_next_token()
         else:
             self.error()
 
-    def expr(self):
-        self.current_token = self.get_next_token()
-
-        left = self.current_token
+    def term(self):
+        token = self.current_token
         self.eat(INTEGER)
-
-        if self.current_token.type == PLUS:
-            op = self.current_token
-            self.eat(PLUS)
-
-        if self.current_token.type == SUBTRACT:
-            op = self.current_token
-            self.eat(SUBTRACT)
-
-        if self.current_token.type == MULT:
-            op = self.current_token
-            self.eat(MULT)
-
-        if self.current_token.type == DIV:
-            op = self.current_token
-            self.eat(DIV)
-
-        right = self.current_token
-        self.eat(INTEGER)
-
-        if op.type == PLUS:
-            result = left.value + right.value
-        if op.type == SUBTRACT:
-            result = left.value - right.value
-        if op.type == MULT:
-            result = left.value * right.value
-        if op.type == DIV:
-            result = left.value / right.value
+        return token.value
             
+    def expr(self):
+        result = self.term()
+
+        while self.current_token.type in (PLUS, SUBTRACT, MULT, DIV):
+            token = self.current_token
+            if token.type == PLUS:
+                self.eat(PLUS)
+                result = result + self.term()
+            elif token.type == SUBTRACT:
+                self.eat(SUBTRACT)
+                result = result - self.term()
+            elif token.type == MULT:
+                self.eat(MULT)
+                result = result * self.term()
+            elif token.type == DIV:
+                self.eat(DIV)
+                result = result / self.term()
+                
         return result
+
+    def error(self):
+        raise Exception('Error parsing input')
+    
 def main():
     while True:
         try:
@@ -137,7 +135,8 @@ def main():
             break
         if not text:
             continue
-        interpreter = Interpreter(text)
+        lexer = Lexer(text)
+        interpreter = Interpreter(lexer)
         result = interpreter.expr()
         print(result)
 
