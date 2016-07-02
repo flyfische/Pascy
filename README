@@ -1,4 +1,8 @@
-#Pascy
-I'm creating this Pascal interpreter by following this blog post:
+# Pascy
+I'm working on a pascal interpreter as defined in these blog posts:
 
 https://ruslanspivak.com/
+
+Currently it functions as a calculator
+
+My code is not 100% in line with the blog posts
